@@ -4,7 +4,7 @@ from functools import partial
 
 import pytest
 
-from plastic.routing.node import Node
+from silvanus.routing.node import Node
 
 
 def some_fn(value: int):
@@ -34,6 +34,7 @@ def test_adding_variable():
 
     assert node.childs[0].childs[0].text is None
     assert node.childs[0].childs[0].variable_type is int
+    assert node.childs[0].childs[0].variable_name == "some"
 
 
 def test_adding_two_variable():
@@ -44,13 +45,14 @@ def test_adding_two_variable():
 
     assert node.childs[0].childs[1].text is None
     assert node.childs[0].childs[1].variable_type is str
+    assert node.childs[0].childs[1].variable_name == "some"
 
 
 def test_sorting():
     node = Node(text="")
 
-    node.add_child("value/{some}", {"some": int}, partial(some_fn, value=1))
-    node.add_child("value/me", {"some": str}, partial(some_fn, value=1))
+    node.add_child("value/{data}", {"data": int}, partial(some_fn, value=1))
+    node.add_child("value/me", {"data": str}, partial(some_fn, value=1))
 
     node.sort()
 
@@ -59,6 +61,7 @@ def test_sorting():
 
     assert node.childs[0].childs[1].text is None
     assert node.childs[0].childs[1].variable_type is int
+    assert node.childs[0].childs[1].variable_name == "data"
 
 
 def test_getting():
