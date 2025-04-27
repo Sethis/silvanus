@@ -1,0 +1,25 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "silvanus"
+version = "0.0.1b"
+description = "A simple library for routing with a tree-like structure"
+license = "MIT"
+authors = ["Alexandr Bortnik <sambonsttt@gmail.com>"]
+readme = "README.md"
+homepage = "https://github.com/Sethis/silvanus"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/Sethis/silvanus/issues"
