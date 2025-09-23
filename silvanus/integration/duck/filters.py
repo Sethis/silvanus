@@ -1,6 +1,6 @@
 from typing import Any
 
-from silvanus.structures.base import RoutingData
+from silvanus.structures import RoutingData
 
 
 class BaseFilter:

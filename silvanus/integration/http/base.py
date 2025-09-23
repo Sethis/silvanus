@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from dataclasses import dataclass
 
-from silvanus.structures.base import RoutingData
+from silvanus.structures import RoutingData
 
 
 TypeFilterType = Callable[[str], Any]
