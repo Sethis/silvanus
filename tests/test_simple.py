@@ -1,15 +1,14 @@
-
-
 import copy
 
 from dataclasses import dataclass
 
 from silvanus.routing.simple import SimpleRouter
 from silvanus.structures.base import RoutingData
+from silvanus.strategy.routers import FirstTrueRouterIterator, AllTrueRouterIterator
 
 
 class SimpleFilter:
-    async def __call__(self, data: RoutingData) -> [bool, RoutingData]:
+    async def __call__(self, data: RoutingData) -> bool:
         used = data.filters_data.get("used", 0) + 1
         data.filters_data["used"] = used
 
@@ -28,7 +27,7 @@ class DataclassFilter:
     string: str
     iteration: int = 0
 
-    async def __call__(self, data: RoutingData) -> [bool, RoutingData]:
+    async def __call__(self, data: RoutingData) -> bool:
         used = data.filters_data.get("used", 0) + 1
         data.filters_data["used"] = used
 
@@ -48,59 +47,105 @@ class ChangeDataMiddleware:
         data.request_data.update(simple=self.simple, num=self.num, string=self.string)
 
 
-def test_simpe_router_init():
+def test_simple_router_init():
     assert SimpleRouter()
 
 
 async def test_empty_router():
     data = RoutingData()
+    data_2 = copy.deepcopy(data)
 
     router = SimpleRouter(data="result_data")
-    result = await router.route(copy.deepcopy(data))
+    result = await router.route(data_2, FirstTrueRouterIterator())
 
-    assert result[0] == "result_data"
-    assert result[1] == data
+    assert result == "result_data"
+    assert data_2 == data
 
 
 async def test_nested_router():
     data = RoutingData()
+    data_2 = copy.deepcopy(data)
 
     router = SimpleRouter(data="result1")
     router.add_router(SimpleRouter(data="result2"))
 
-    result = await router.route(copy.deepcopy(data))
+    result = await router.route(data_2, FirstTrueRouterIterator())
 
-    assert result[0] == "result2"
-    assert result[1] == data
+    assert result == "result1"
+    assert data_2 == data
+
+
+async def test_nested_router_all_true():
+    data = RoutingData()
+    data_2 = copy.deepcopy(data)
+
+    router = SimpleRouter(data="result1")
+    router.add_router(SimpleRouter(data="result2"))
+
+    result = await router.route(data_2, AllTrueRouterIterator())
+
+    assert result == ["result1", "result2"]
+    assert data_2 == data
+
+
+async def test_nested_router_all_true_one_none():
+    data = RoutingData()
+
+    router = SimpleRouter(data=None)
+    router.add_router(SimpleRouter(data="result2"))
+
+    data_2 = copy.deepcopy(data)
+    result = await router.route(data_2, AllTrueRouterIterator())
+
+    assert result == ["result2"]
+    assert data_2 == data
+
+async def test_nested_router_all_true_all_none():
+    data = RoutingData()
+
+    router = SimpleRouter(data=None)
+    router.add_router(SimpleRouter(data=None))
+
+    data_2 = copy.deepcopy(data)
+    result = await router.route(data_2, AllTrueRouterIterator())
+
+    assert result == []
+    assert data_2 == data
 
 
 async def test_router_with_filter():
+    data_1 = RoutingData(
+            request_data={"simple": True}
+        )
+
+    data_2 = RoutingData(
+            request_data={"simple": False}
+        )
+
     router = SimpleRouter(
         data="filtered",
         filters=[SimpleFilter(), ]
     )
 
     result1 = await router.route(
-        data=RoutingData(
-            request_data={"simple": True}
-        )
+        data=data_1,
+        iterator=FirstTrueRouterIterator()
     )
 
     result2 = await router.route(
-        data=RoutingData(
-            request_data={"simple": False}
-        )
+        data=data_2,
+        iterator=FirstTrueRouterIterator()
     )
 
-    assert result1[0] == "filtered"
-    assert result1[1] == RoutingData(
+    assert result1 == "filtered"
+    assert data_1 == RoutingData(
         request_data={"simple": True},
         filters_data={"used": 1},
         used_filters={SimpleFilter(): True}
     )
 
-    assert result2[0] is None
-    assert result2[1] == RoutingData(
+    assert result2 is None
+    assert data_2 == RoutingData(
         request_data={"simple": False},
         filters_data={"used": 1},
         used_filters={SimpleFilter(): False}
@@ -108,6 +153,14 @@ async def test_router_with_filter():
 
 
 async def test_cache_router():
+    data_1 = RoutingData(
+        request_data={"simple": True}
+    )
+
+    data_2 = RoutingData(
+        request_data={"simple": False}
+    )
+
     router = SimpleRouter(
         filters=[SimpleFilter(), ]
     )
@@ -119,26 +172,24 @@ async def test_cache_router():
     )
 
     result1 = await router.route(
-        data=RoutingData(
-            request_data={"simple": True}
-        )
+        data=data_1,
+        iterator=FirstTrueRouterIterator()
     )
 
     result2 = await router.route(
-        data=RoutingData(
-            request_data={"simple": False}
-        )
+        data=data_2,
+        iterator=FirstTrueRouterIterator()
     )
 
-    assert result1[0] == "nested_filtered"
-    assert result1[1] == RoutingData(
+    assert result1 == "nested_filtered"
+    assert data_1 == RoutingData(
         request_data={"simple": True},
         filters_data={"used": 1},
         used_filters={SimpleFilter(): True}
     )
 
-    assert result2[0] is None
-    assert result2[1] == RoutingData(
+    assert result2 is None
+    assert data_2 == RoutingData(
         request_data={"simple": False},
         filters_data={"used": 1},
         used_filters={SimpleFilter(): False}
@@ -146,27 +197,36 @@ async def test_cache_router():
 
 
 async def test_dataclass_router():
+    data_1 = RoutingData(
+            request_data={"num": 123, "string": "test"}
+        )
+
+    data_2 = RoutingData(
+            request_data={"num": 124, "string": "test"}
+        )
+
+    data_3 = RoutingData(
+            request_data={"num": 123, "string": "test1"}
+        )
+
     router = SimpleRouter(
         filters=[DataclassFilter(num=123, string="test"), ],
         data="result"
     )
 
     result1 = await router.route(
-        data=RoutingData(
-            request_data={"num": 123, "string": "test"}
-        )
+        data=data_1,
+        iterator=FirstTrueRouterIterator()
     )
 
     result2 = await router.route(
-        data=RoutingData(
-            request_data={"num": 124, "string": "test"}
-        )
+        data=data_2,
+        iterator=FirstTrueRouterIterator()
     )
 
     result3 = await router.route(
-        data=RoutingData(
-            request_data={"num": 123, "string": "test1"}
-        )
+        data=data_3,
+        iterator=FirstTrueRouterIterator()
     )
 
     d_filter = DataclassFilter(
@@ -174,22 +234,22 @@ async def test_dataclass_router():
         string="test"
     )
 
-    assert result1[0] == "result"
-    assert result1[1] == RoutingData(
+    assert result1 == "result"
+    assert data_1 == RoutingData(
         request_data={"num": 123, "string": "test"},
         filters_data={"used": 1},
         used_filters={d_filter: True}
     )
 
-    assert result2[0] is None
-    assert result2[1] == RoutingData(
+    assert result2 is None
+    assert data_2 == RoutingData(
         request_data={"num": 124, "string": "test"},
         filters_data={"used": 1},
         used_filters={d_filter: False}
     )
 
-    assert result3[0] is None
-    assert result3[1] == RoutingData(
+    assert result3 is None
+    assert data_3 == RoutingData(
         request_data={"num": 123, "string": "test1"},
         filters_data={"used": 1},
         used_filters={d_filter: False}
@@ -217,19 +277,22 @@ async def long_path_route():
     )
     parent3.add_router(router)
 
-    result = await parent3.route(
-        data=RoutingData(
+    data = RoutingData(
             request_data={
                 "simple": True,
                 "num": 123,
                 "string": "123"
             }
         )
+
+    result = await parent3.route(
+        data=data,
+        iterator=FirstTrueRouterIterator()
     )
 
-    assert result[0] == "long_data"
-    assert result[1].filters_data["used"] == 2
-    assert result[1].used_filters == {
+    assert result == "long_data"
+    assert data.filters_data["used"] == 2
+    assert data.used_filters == {
         SimpleFilter(): True,
         DataclassFilter(num=123, string="123"): True
     }
@@ -261,31 +324,37 @@ async def multi_long_path_route():
     )
     parent3.add_router(parent3)
 
+    data_1 = RoutingData(
+        request_data={
+            "simple": True,
+            "num": 123,
+            "string": "123"
+        }
+    )
+
+    data_2 = RoutingData(
+        request_data={
+            "simple": True,
+            "num": 150,
+            "string": "text"
+        }
+    )
+
     result1 = await parent3.route(
-        data=RoutingData(
-            request_data={
-                "simple": True,
-                "num": 123,
-                "string": "123"
-            }
-        )
+        data=data_1,
+        iterator=FirstTrueRouterIterator()
     )
 
     result2 = await parent3.route(
-        data=RoutingData(
-            request_data={
-                "simple": True,
-                "num": 150,
-                "string": "text"
-            }
-        )
+        data=data_2,
+        iterator=FirstTrueRouterIterator()
     )
 
-    assert result1[0] == "child1"
-    assert result1[1].filters_data["used"] == 2
+    assert result1 == "child1"
+    assert data_1.filters_data["used"] == 2
 
-    assert result2[0] == "child2"
-    assert result2[1].filters_data["used"] == 2
+    assert result2 == "child2"
+    assert data_2.filters_data["used"] == 2
 
 
 async def test_nested_router_with_middleware():
@@ -306,7 +375,7 @@ async def test_nested_router_with_middleware():
             )
 
     parent = SimpleRouter(
-        data="notrue",
+        data=None,
         middlewares=[],
         filters=[parent_filter]
     )
@@ -341,18 +410,21 @@ async def test_nested_router_with_middleware():
 
     parent.add_routers([false_router, true_router])
 
-    result = await parent.route(
-        RoutingData(
+    data = RoutingData(
             request_data={
                 "simple": False,
                 "num": -100,
                 "string": "another"
             }
         )
+
+    result = await parent.route(
+        data,
+        iterator=FirstTrueRouterIterator()
     )
 
-    assert result[0] == "true"
-    assert result[1] == RoutingData(
+    assert result == "true"
+    assert data == RoutingData(
         request_data={
             "simple": False,
             "num": 1000,

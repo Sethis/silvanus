@@ -1,8 +1,7 @@
-
-
 from typing import Any, Protocol, Optional
-
 from dataclasses import dataclass, field
+
+from silvanus.strategy.routers.base import RouterIteratorProtocol
 
 
 @dataclass(slots=True, kw_only=True)
@@ -12,22 +11,22 @@ class RoutingData:
     middleware_data: dict[str, Any] = field(default_factory=dict)
     filters_data: dict[str, Any] = field(default_factory=dict)
 
-    used_filters: dict["BaseFilter", bool] = field(default_factory=dict)
-    used_middlewares: set["BaseMiddleware"] = field(default_factory=set)
-    inner_middlewares: set["BaseMiddleware"] = field(default_factory=set)
+    used_filters: dict["FilterProtocol", bool] = field(default_factory=dict)
+    used_middlewares: set["MiddlewareProtocol"] = field(default_factory=set)
+    inner_middlewares: set["MiddlewareProtocol"] = field(default_factory=set)
 
 
 @dataclass(slots=True, kw_only=True)
 class RouterSchema:
     name: str
-    router: "BaseRouter"
-    filters: list["BaseFilter"]
-    middlewares: list["BaseMiddleware"]
+    router: "RouterProtocol"
+    filters: list["FilterProtocol"]
+    middlewares: list["MiddlewareProtocol"]
     children: list["RouterSchema"]
     parent: Optional["RouterSchema"] = None
 
 
-class BaseFilter(Protocol):
+class FilterProtocol(Protocol):
     async def __call__(self, data: RoutingData) -> bool:
         raise NotImplementedError()
 
@@ -38,7 +37,7 @@ class BaseFilter(Protocol):
         raise NotImplementedError()
 
 
-class BaseMiddleware(Protocol):
+class MiddlewareProtocol(Protocol):
     async def __call__(self, data: RoutingData):
         raise NotImplementedError()
 
@@ -50,15 +49,15 @@ class BaseMiddleware(Protocol):
 
 
 @dataclass(slots=True, kw_only=True)
-class BaseRouter(Protocol):
+class RouterProtocol(Protocol):
     # noinspection PyUnusedLocal
     def __init__(
             self,
-            filters: Optional[list[BaseFilter]] = None,
-            middlewares: Optional[list[BaseMiddleware]] = None,
-            inner_middlewares: Optional[list[BaseMiddleware]] = None,
+            filters: Optional[list[FilterProtocol]] = None,
+            middlewares: Optional[list[MiddlewareProtocol]] = None,
+            inner_middlewares: Optional[list[MiddlewareProtocol]] = None,
             data: Any = None,
-            parent: Optional["BaseRouter"] = None,
+            parent: Optional["RouterProtocol"] = None,
             name: Optional[str] = None
     ):
         """
@@ -70,43 +69,48 @@ class BaseRouter(Protocol):
         """
         raise NotImplementedError()
 
-    def add_filter(self, filter_: BaseFilter):
+    def add_filter(self, filter_: FilterProtocol):
         """
-        Adds an additional filter to the router
+        Adds a filter to the router
         :param filter_:
         :return:
         """
         raise NotImplementedError()
 
-    def add_router(self, router: "BaseRouter"):
+    def add_router(self, router: "RouterProtocol"):
         """
-        Adds an additional router to the router
+        Adds a router to the router
         :param router:
         :return:
         """
         raise NotImplementedError()
 
-    def add_routers(self, router: list["BaseRouter"]):
+    def add_routers(self, router: list["RouterProtocol"]):
         """
-        Adds an additional routers to the router
+        Adds a routers to the router
         :param router:
         :return:
         """
         raise NotImplementedError()
 
-    def add_middleware(self, middleware: BaseMiddleware, inner: bool = False):
+    def add_middleware(self, middleware: MiddlewareProtocol, inner: bool = False):
         """
-        Adds an additional middleware to the router
+        Adds a middleware to the router
         :param inner:
         :param middleware:
         :return:
         """
         raise NotImplementedError()
 
-    async def route(self, data: RoutingData) -> tuple[Any, RoutingData]:
+    async def route(
+            self,
+            data: RoutingData,
+            iterator: RouterIteratorProtocol
+    ) -> Any:
         """
         Search for data by yourself. It can also search through its
         child routers, depending on the execution.
+        :param iterator: the determinant of which data to return from the routers
         :param data: An instance of the data that will be used for routing
         and adding data to the data
         :return:

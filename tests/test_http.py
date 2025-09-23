@@ -1,5 +1,3 @@
-
-
 from silvanus.integration.http import (
     parse_path,
     PathFilter,
@@ -10,6 +8,7 @@ from silvanus.integration.http import (
 )
 from silvanus.routing.simple import SimpleRouter
 from silvanus.structures.base import RoutingData
+from silvanus.strategy.routers import FirstTrueRouterIterator
 
 
 def test_parsing_simple():
@@ -143,10 +142,10 @@ async def test_filter_routing():
     root_router = SimpleRouter()
     root_router.add_router(handler)
 
-    result = await root_router.route(data=data)
+    result = await root_router.route(data=data, iterator=FirstTrueRouterIterator())
 
-    assert result[0] == "true_result"
-    assert result[1].filters_data == {
+    assert result == "true_result"
+    assert data.filters_data == {
                 "name": "timmy",
                 "age": 10,
                 "height": 10.1,
@@ -154,7 +153,7 @@ async def test_filter_routing():
                 "string": "10"
             }
 
-    assert result[1].app_data["name"] == "tommy"
+    assert data.app_data["name"] == "tommy"
 
 
 async def test_filter_routing_different_method():
@@ -173,9 +172,9 @@ async def test_filter_routing_different_method():
     root_router = SimpleRouter()
     root_router.add_router(handler)
 
-    result = await root_router.route(data=data)
+    result = await root_router.route(data=data, iterator=FirstTrueRouterIterator())
 
-    assert result[0] is None
-    assert result[1].filters_data == {}
+    assert result is None
+    assert data.filters_data == {}
 
-    assert result[1].app_data["name"] == "tommy"
+    assert data.app_data["name"] == "tommy"

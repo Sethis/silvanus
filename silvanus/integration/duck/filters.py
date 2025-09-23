@@ -1,5 +1,3 @@
-
-
 from typing import Any
 
 from silvanus.structures.base import RoutingData
