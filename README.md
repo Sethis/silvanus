@@ -18,6 +18,13 @@ to write small wrappers on top of routing for frameworks.
 
 # Usage
 
+**First:**
+```commandline
+pip install silvanus
+```
+
+**Later:**
+
 data queue interface with filters using FirstTrueRouterIterator, and
 data bus interface with filters using AllTrueRouterIterator
 ```python
