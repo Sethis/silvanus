@@ -1,6 +1,13 @@
 # SILVANUS
 The simple library for different routing with a tree-like structure
 
+# Implementation example
+Silvanus is created as a **low-level library that 
+simplifies the construction** of productive, user-friendly, functional 
+and customizable frameworks on top of. These can be different options 
+(data buses, web, etc.), therefore, for an example of how it might look, 
+there is **[silvahttp](https://github.com/Sethis/silvahttp)**.
+
 # Paradigms:
 - Each element is changeable almost beyond recognition, 
 but a combination of them is possible due to common protocols 
