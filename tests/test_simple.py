@@ -75,6 +75,32 @@ async def test_nested_router():
     assert data_2 == data
 
 
+async def test_nested_router_nothing_default():
+    data = RoutingData()
+    data_2 = copy.deepcopy(data)
+
+    router = SimpleRouter()
+    router.add_router(SimpleRouter())
+
+    result = await router.route(data_2, FirstTrueRouterIterator())
+
+    assert result is None
+    assert data_2 == data
+
+
+async def test_nested_router_some_default():
+    data = RoutingData()
+    data_2 = copy.deepcopy(data)
+
+    router = SimpleRouter()
+    router.add_router(SimpleRouter())
+
+    result = await router.route(data_2, FirstTrueRouterIterator(on_nothing=1))
+
+    assert result == 1
+    assert data_2 == data
+
+
 async def test_nested_router_all_true():
     data = RoutingData()
     data_2 = copy.deepcopy(data)

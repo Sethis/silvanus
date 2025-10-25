@@ -5,9 +5,10 @@ if TYPE_CHECKING:
 
 
 class AllTrueRouterIterator(Protocol):
-    def __init__(self):
+    def __init__(self, on_nothing: Any = None):
         self._returned = []
         self._nested = False
+        self._on_nothing = on_nothing
 
     async def __call__(
             self,
@@ -24,11 +25,11 @@ class AllTrueRouterIterator(Protocol):
         for router in routers:
             result = await router.route(data, self)
 
-            if result is not None:
+            if result is not self._on_nothing:
                 self._returned.extend(result)
 
         if not nested:
             return self._returned
 
         else:
-            return None
+            return self._on_nothing

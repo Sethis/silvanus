@@ -5,8 +5,8 @@ if TYPE_CHECKING:
 
 
 class FirstTrueRouterIterator(Protocol):
-    def __init__(self):
-        pass
+    def __init__(self, on_nothing: Any = None):
+        self._on_nothing = on_nothing
 
     async def __call__(
             self,
@@ -20,7 +20,7 @@ class FirstTrueRouterIterator(Protocol):
         for router in routers:
             result = await router.route(data, self)
 
-            if result is not None:
+            if result is not self._on_nothing:
                 return result
 
-        return None
+        return self._on_nothing
