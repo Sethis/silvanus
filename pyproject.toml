@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "silvanus"
-version = "0.1.0b"
+version = "0.1.1b"
 description = "A simple library for routing with a tree-like structure"
 license = "MIT"
 authors = ["Alexandr Bortnik <sambonsttt@gmail.com>"]
