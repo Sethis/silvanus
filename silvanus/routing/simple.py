@@ -87,7 +87,7 @@ class SimpleRouter:
 
             if filter_result is not None:
                 if not filter_result:
-                    return None
+                    return iterator.on_nothing
 
                 continue
 
@@ -95,7 +95,7 @@ class SimpleRouter:
             data.used_filters[self_filter] = filter_result
 
             if not filter_result:
-                return None
+                return iterator.on_nothing
 
         for inner in self.inner_middlewares:
             data.inner_middlewares.add(inner)

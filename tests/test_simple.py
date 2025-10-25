@@ -101,6 +101,18 @@ async def test_nested_router_some_default():
     assert data_2 == data
 
 
+async def test_nested_router_some_default_with_filter():
+    data = RoutingData(request_data={"simple": False})
+    data_2 = copy.deepcopy(data)
+
+    router = SimpleRouter()
+    router.add_router(SimpleRouter(data=100, filters=[SimpleFilter()]))
+
+    result = await router.route(data_2, FirstTrueRouterIterator(on_nothing=1))
+
+    assert result == 1
+
+
 async def test_nested_router_all_true():
     data = RoutingData()
     data_2 = copy.deepcopy(data)

@@ -4,6 +4,8 @@ if TYPE_CHECKING:
     from silvanus.structures.base import RouterProtocol, RoutingData
 
 class RouterIteratorProtocol(Protocol):
+    on_nothing: str
+
     async def __call__(
             self,
             routers: list["RouterProtocol"],

@@ -8,7 +8,7 @@ class AllTrueRouterIterator(Protocol):
     def __init__(self, on_nothing: Any = None):
         self._returned = []
         self._nested = False
-        self._on_nothing = on_nothing
+        self.on_nothing = on_nothing
 
     async def __call__(
             self,
@@ -25,11 +25,11 @@ class AllTrueRouterIterator(Protocol):
         for router in routers:
             result = await router.route(data, self)
 
-            if result is not self._on_nothing:
+            if result is not self.on_nothing:
                 self._returned.extend(result)
 
         if not nested:
             return self._returned
 
         else:
-            return self._on_nothing
+            return self.on_nothing
